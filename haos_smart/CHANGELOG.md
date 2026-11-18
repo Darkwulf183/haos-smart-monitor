@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0
+- **Integration auf Nachfrage mitinstallieren:** Die Weboberfläche fragt beim ersten Öffnen. Bei „Ja“ kopiert die App die Integration nach `custom_components/haos_smart` und hält sie bei jedem App-Update aktuell; bei „Nein“ bleibt `/config` unberührt
+- AppArmor erlaubt in der HA-Konfiguration nur den Ordner `custom_components/haos_smart`; `secrets.yaml`, `.storage` und YAML-Dateien sind gesperrt
+- Die Auswahl lässt sich nur über die Weboberfläche (Ingress) ändern
+- Hinweis „Home Assistant neu starten“, bis die neue Integrationsversion wirklich läuft
+- Icon und Logo der Integration (ab Home Assistant 2026.3, Ordner `brand/`)
+- Prüfung jedes Commits mit HACS-Validierung und hassfest
+
 ## 0.3.2
 - Eigenes Icon und Logo für den App-Store (Quelle als SVG in `.github/assets`)
 

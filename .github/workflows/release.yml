@@ -9,6 +9,7 @@ on:
     branches: [main]
     paths:
       - haos_smart/config.yaml
+      - custom_components/haos_smart/manifest.json
       - .github/releases/**
       - .github/workflows/release.yml
   workflow_dispatch:
@@ -29,6 +30,9 @@ jobs:
           integ=$(python3 -c "import json;print(json.load(open('custom_components/haos_smart/manifest.json'))['version'])")
           if [ "$app" != "$integ" ]; then
             echo "::error::App-Version $app und Integrations-Version $integ unterscheiden sich"; exit 1
+          fi
+          if ! diff -rq custom_components/haos_smart haos_smart/integration/haos_smart; then
+            echo "::error::Integration in haos_smart/integration ist nicht synchron (scripts/sync_integration.sh)"; exit 1
           fi
           echo "version=$app" >> "$GITHUB_OUTPUT"
 

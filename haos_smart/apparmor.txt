@@ -39,10 +39,24 @@ profile haos_smart flags=(attach_disconnected,mediate_deleted) {
   /etc/** r,
   /usr/share/zoneinfo/** r,
 
-  # App-Dateien (nur lesen) und Optionen
+  # App-Dateien und mitgelieferte Integration (nur lesen), Optionen
   /app/** r,
+  /integration/ r,
+  /integration/** r,
   /data/ r,
   /data/options.json r,
+  # gespeicherte Auswahl "Integration mitinstallieren"
+  /data/state.json rw,
+  /data/state.json.tmp rw,
+
+  # Home-Assistant-Konfiguration: NUR der eigene Integrationsordner.
+  # Alles andere unter /homeassistant (secrets.yaml, .storage, ...) ist gesperrt.
+  /homeassistant/custom_components/ w,
+  /homeassistant/custom_components/haos_smart/ rw,
+  /homeassistant/custom_components/haos_smart/** rw,
+  deny /homeassistant/secrets.yaml rw,
+  deny /homeassistant/.storage/** rw,
+  deny /homeassistant/*.yaml w,
 
   # Platten: nur Lesen (smartctl öffnet SATA/SAT und NVMe mit O_RDONLY)
   /dev/ r,

@@ -72,7 +72,7 @@ Das lässt sich nicht weiter einschränken, weil SMART genau über diesen Weg ge
 
 | Recht | Status |
 |---|---|
-| Zugriff auf `/config` (deine HA-Konfiguration, `secrets.yaml`) | ❌ nicht eingebunden |
+| Lesen/Schreiben deiner HA-Konfiguration (`secrets.yaml`, `.storage`, YAML-Dateien) | ❌ per AppArmor gesperrt – erlaubt ist nur der eigene Ordner `custom_components/haos_smart`, und auch der erst nach deiner Zustimmung (siehe unten) |
 | Token für die Home-Assistant- oder Supervisor-API | ❌ nicht angefordert |
 | Docker-API, Host-Netzwerk, Host-Prozesse | ❌ |
 | `SYS_ADMIN` (u. a. Dateisysteme einhängen) | ❌ – deshalb auch kein NVMe |
@@ -93,6 +93,11 @@ Das lässt sich nicht weiter einschränken, weil SMART genau über diesen Weg ge
   (optional mit `:typ`). `smartctl` wird ohne Shell aufgerufen.
 - **Wenig Code**: rund 400 Zeilen Python ([`haos_smart/app/app.py`](haos_smart/app/app.py)) plus eine
   HTML-Datei. Keine Abhängigkeiten außer Python und smartmontools aus Alpine Linux.
+- **Integration nur auf Nachfrage**: `/config` ist eingebunden, damit die App ihre Integration mitinstallieren
+  kann. Sie tut das aber erst, wenn du in der Weboberfläche **„Ja, mitinstallieren“** wählst. Diese Auswahl lässt
+  sich nur über die Weboberfläche (also angemeldet in Home Assistant) ändern, nicht über die API von anderen
+  Apps. AppArmor beschränkt das Schreiben auf `custom_components/haos_smart`; ehrlich gesagt ist diese Sperre
+  genau so gut wie AppArmor selbst. Wer das nicht möchte, wählt „Nein“ und installiert die Integration über HACS.
 - **Kein fertiges Image**: Home Assistant baut das Image bei der Installation auf deinem Rechner aus
   genau den Dateien in diesem Repository. Das Basisimage (`alpine:3.22`) ist auf einen festen Stand
   (Digest) gepinnt.
@@ -135,8 +140,12 @@ auszuschalten. Nach dem Ausschalten die App **neu starten** – der Zugriff gilt
 
 ### 2. Integration (für Sensoren in Home Assistant)
 
-Die App kopiert die Integration bewusst **nicht** selbst, weil sie dafür Schreibzugriff auf deine
-Konfiguration bräuchte. Zwei Wege:
+**Am einfachsten:** Weboberfläche der App öffnen (Seitenmenü „SMART“ oder „Web-UI öffnen“). Beim ersten Mal
+fragt sie **„Integration mitinstallieren?“** → **Ja**. Die App kopiert die Integration und hält sie bei jedem
+App-Update aktuell. Danach Home Assistant neu starten – die Weboberfläche erinnert dich daran, bis der Neustart
+erfolgt ist. Die Auswahl lässt sich unten in der Weboberfläche über „ändern“ jederzeit anpassen.
+
+Alternativ, wenn du „Nein“ wählst:
 
 - **HACS:** HACS → ⋮ → **Benutzerdefinierte Repositories** → dieses Repository als
   **Integration** hinzufügen → **HAOS SMART Monitor** herunterladen.
@@ -147,7 +156,9 @@ Danach Home Assistant **neu starten** und unter **Einstellungen → Geräte & Di
 hinzufügen** → **HAOS SMART Monitor** wählen. Host und Port werden automatisch vorgeschlagen.
 
 App und Integration sollten dieselbe Version haben. Weichen sie ab, erscheint ein Hinweis unter
-**Einstellungen → Reparaturen**.
+**Einstellungen → Reparaturen** (bei der Variante „mitinstallieren“ passiert das nicht).
+
+Ab Home Assistant 2026.3 zeigt die Integration ihr eigenes Icon an.
 
 ---
 
@@ -174,10 +185,12 @@ Mehr Details (Optionen, Fehlersuche, API): [haos_smart/DOCS.md](haos_smart/DOCS.
 ## Aufbau des Repositorys
 
 ```
-repository.yaml              App-Repository für Home Assistant
-haos_smart/                  die App (config.yaml, Dockerfile, apparmor.txt, app/)
-custom_components/haos_smart/  die Integration (auch für HACS)
+repository.yaml                  App-Repository für Home Assistant
+haos_smart/                      die App (config.yaml, Dockerfile, apparmor.txt, app/)
+haos_smart/integration/          Kopie der Integration für das App-Image (scripts/sync_integration.sh)
+custom_components/haos_smart/    die Integration (Quelle, auch für HACS), mit brand/-Icons
 hacs.json
+.github/workflows/               Release automatisch je Version, Prüfung mit HACS + hassfest
 ```
 
 ---

@@ -6,15 +6,17 @@
 - liefert eine Weboberflaeche (Ingress) und eine kleine JSON-API, die die
   mitgelieferte Integration abfragt
 
-Bewusst minimal: nur Python-Standardbibliothek, kein Zugriff auf die
-Home-Assistant-Konfiguration, kein Token fuer die Home-Assistant-API.
-Die Integration wird separat installiert (HACS oder von Hand).
+Bewusst minimal: nur Python-Standardbibliothek, kein Token fuer die
+Home-Assistant-API. Die mitgelieferte Integration wird nur nach Zustimmung
+in der Weboberflaeche nach custom_components kopiert; AppArmor erlaubt
+dabei nur Schreiben in custom_components/haos_smart.
 """
 import ipaddress
 import json
 import logging
 import os
 import re
+import shutil
 import signal
 import subprocess
 import threading
@@ -23,9 +25,15 @@ from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-VERSION = "0.3.2"
+VERSION = "0.4.0"
 OPTIONS_FILE = os.environ.get("OPTIONS_FILE", "/data/options.json")
 WEB_DIR = Path(__file__).resolve().parent / "web"
+STATE_FILE = Path(os.environ.get("STATE_FILE", "/data/state.json"))
+HA_CONFIG_DIR = Path(os.environ.get("HA_CONFIG_DIR", "/homeassistant"))
+INTEGRATION_SRC = Path(os.environ.get("INTEGRATION_SRC", "/integration/haos_smart"))
+# Nur der Supervisor (Ingress = angemeldeter HA-Nutzer) darf die Zustimmung aendern
+INGRESS_NETS = [ipaddress.ip_network(n) for n in (
+    "172.30.32.2/32", "fd0c:ac1e:2100::2/128", "127.0.0.0/8", "::1/128")]
 PORT = int(os.environ.get("PORT", "8099"))
 # Zugriff nur fuer Home Assistant Core (kommt ueber das Gateway des internen
 # Netzes) und den Supervisor (Ingress-Proxy). Andere Apps im internen Netz
@@ -40,6 +48,7 @@ DEVICE_RE = re.compile(r"/dev/(sd[a-z]{1,2}|nvme[0-9]+(n[0-9]+)?)(:[a-z0-9,]+)?"
 REFRESH_MIN_GAP = 60
 if os.environ.get("ALLOW_ALL") == "1":  # nur fuer Tests ausserhalb von HA
     ALLOWED_NETS = [ipaddress.ip_network("0.0.0.0/0"), ipaddress.ip_network("::/0")]
+    INGRESS_NETS = ALLOWED_NETS
 
 log = logging.getLogger("haos_smart")
 
@@ -317,9 +326,111 @@ class Monitor:
                     "disks": sorted(disks, key=lambda x: x["device"])}
 
 
+
+# ------------------------------------------------------------ Integration ---
+
+def _manifest_version(path):
+    try:
+        return json.loads((path / "manifest.json").read_text(encoding="utf-8")).get("version")
+    except (OSError, ValueError):
+        return None
+
+
+class IntegrationInstaller:
+    """Kopiert die Integration nach custom_components – nur nach Zustimmung.
+
+    Zustand in /data/state.json: integration = "ask" | "yes" | "no".
+    """
+
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.choice = "ask"
+        self.error = None
+        self.installed_now = None      # in diesem App-Lauf kopierte Version
+        self.seen_version = None       # Version, mit der sich die Integration zuletzt gemeldet hat
+        try:
+            self.choice = json.loads(STATE_FILE.read_text(encoding="utf-8")).get("integration", "ask")
+        except (OSError, ValueError):
+            pass
+        if self.choice not in ("ask", "yes", "no"):
+            self.choice = "ask"
+
+    @property
+    def dst(self):
+        return HA_CONFIG_DIR / "custom_components" / "haos_smart"
+
+    def _save(self):
+        tmp = STATE_FILE.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps({"integration": self.choice}), encoding="utf-8")
+        os.replace(tmp, STATE_FILE)
+
+    def _copy(self):
+        """Ordner ersetzen; nur Dateiinhalte kopieren (keine Rechte/Zeitstempel)."""
+        dst = self.dst
+        if dst.exists():
+            shutil.rmtree(dst)
+        for src in sorted(INTEGRATION_SRC.rglob("*")):
+            if "__pycache__" in src.parts:
+                continue
+            target = dst / src.relative_to(INTEGRATION_SRC)
+            if src.is_dir():
+                target.mkdir(parents=True, exist_ok=True)
+            else:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(src, target)
+
+    def sync(self):
+        """Bei Zustimmung installieren bzw. aktualisieren."""
+        with self.lock:
+            if self.choice != "yes":
+                return
+            bundled = _manifest_version(INTEGRATION_SRC)
+            current = _manifest_version(self.dst)
+            if bundled and bundled == current:
+                log.info("Integration ist aktuell (Version %s)", current)
+                return
+            if not HA_CONFIG_DIR.is_dir():
+                self.error = f"Ordner {HA_CONFIG_DIR} nicht eingebunden"
+                log.error("Integration nicht installiert: %s", self.error)
+                return
+            try:
+                self._copy()
+            except OSError as exc:
+                self.error = f"Kopieren fehlgeschlagen: {exc}"
+                log.error("Integration nicht installiert: %s", exc)
+                return
+            self.error = None
+            self.installed_now = bundled
+            log.info("Integration %s: %s -> %s. Bitte Home Assistant neu starten.",
+                     "aktualisiert" if current else "installiert", current, bundled)
+
+    def set_choice(self, install):
+        with self.lock:
+            self.choice = "yes" if install else "no"
+            self.error = None
+            try:
+                self._save()
+            except OSError as exc:
+                log.error("Auswahl konnte nicht gespeichert werden: %s", exc)
+        log.info("Integration mitinstallieren: %s", "ja" if install else "nein")
+        self.sync()
+
+    def status(self):
+        with self.lock:
+            bundled = _manifest_version(INTEGRATION_SRC)
+            installed = _manifest_version(self.dst) if HA_CONFIG_DIR.is_dir() else None
+            # Neustart noetig, wenn in diesem Lauf kopiert wurde und sich die laufende
+            # Integration noch nicht mit der neuen Version gemeldet hat
+            restart = bool(self.installed_now and installed == self.installed_now
+                           and self.seen_version != installed)
+            return {"choice": self.choice, "bundled_version": bundled,
+                    "installed_version": installed, "running_version": self.seen_version,
+                    "restart_needed": restart, "error": self.error}
+
+
 # ------------------------------------------------------------- Webserver ---
 
-def make_handler(monitor):
+def make_handler(monitor, installer):
     index_html = (WEB_DIR / "index.html").read_bytes()
 
     class Handler(BaseHTTPRequestHandler):
@@ -346,6 +457,18 @@ def make_handler(monitor):
             self.end_headers()
             self.wfile.write(body)
 
+        def _from_ingress(self):
+            try:
+                ip = ipaddress.ip_address(self.client_address[0])
+            except ValueError:
+                return False
+            return any(ip in net for net in INGRESS_NETS)
+
+        def _note_integration(self):
+            v = self.headers.get("X-HAOS-SMART-Integration")
+            if v and re.fullmatch(r"[0-9][0-9a-z.\-]{0,20}", v):
+                installer.seen_version = v
+
         def _json(self, obj, code=200):
             self._send(code, json.dumps(obj, ensure_ascii=False).encode(), "application/json; charset=utf-8")
 
@@ -358,7 +481,10 @@ def make_handler(monitor):
             elif path == "/favicon.ico":
                 self._send(204, b"", "image/x-icon")
             elif path == "/api/disks":
+                self._note_integration()
                 self._json(monitor.snapshot(with_raw="raw=1" in self.path))
+            elif path == "/api/integration":
+                self._json(installer.status())
             elif path.startswith("/api/disks/") and path.endswith("/raw"):
                 did = path.split("/")[3]
                 with monitor.lock:
@@ -375,8 +501,29 @@ def make_handler(monitor):
                 return
             path = self.path.split("?", 1)[0].rstrip("/")
             if path == "/api/refresh":
+                self._note_integration()
                 monitor.refresh_now()
                 self._json(monitor.snapshot())
+            elif path == "/api/integration":
+                # Nur ueber Ingress (angemeldeter HA-Nutzer) und nur als JSON
+                # (Browser schicken JSON von fremden Seiten nicht ohne CORS-Freigabe)
+                if not self._from_ingress():
+                    self._json({"error": "nur über die Weboberfläche möglich"}, 403)
+                    return
+                if "application/json" not in (self.headers.get("Content-Type") or ""):
+                    self._json({"error": "JSON erwartet"}, 415)
+                    return
+                try:
+                    length = min(int(self.headers.get("Content-Length") or 0), 1024)
+                    body = json.loads(self.rfile.read(length) or b"{}")
+                    install = body["install"]
+                    if not isinstance(install, bool):
+                        raise ValueError
+                except (ValueError, KeyError, TypeError):
+                    self._json({"error": "erwartet {\"install\": true|false}"}, 400)
+                    return
+                installer.set_choice(install)
+                self._json(installer.status())
             else:
                 self._json({"error": "nicht gefunden"}, 404)
 
@@ -394,11 +541,19 @@ def main():
     )
     log.info("HAOS SMART Monitor %s startet (Intervall %s min)", VERSION, opts["scan_interval"])
 
+    installer = IntegrationInstaller()
+    try:
+        installer.sync()
+    except Exception:
+        log.exception("Integration konnte nicht aktualisiert werden")
+    if installer.choice == "ask":
+        log.info("Integration noch nicht mitinstalliert – Auswahl in der Weboberfläche")
+
     stop = threading.Event()
     monitor = Monitor(opts)
     threading.Thread(target=monitor.run, args=(stop,), daemon=True).start()
 
-    server = ThreadingHTTPServer(("0.0.0.0", PORT), make_handler(monitor))
+    server = ThreadingHTTPServer(("0.0.0.0", PORT), make_handler(monitor, installer))
     server.daemon_threads = True
 
     def shutdown(*_):

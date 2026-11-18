@@ -35,7 +35,9 @@ class HaosSmartApi:
     async def _request(self, method: str, path: str, timeout: int) -> dict[str, Any]:
         try:
             async with self._session.request(
-                method, self._base + path, timeout=aiohttp.ClientTimeout(total=timeout)
+                method, self._base + path, timeout=aiohttp.ClientTimeout(total=timeout),
+                # Damit die App erkennt, welche Integrationsversion gerade läuft
+                headers={"X-HAOS-SMART-Integration": INTEGRATION_VERSION},
             ) as resp:
                 resp.raise_for_status()
                 data = await resp.json(content_type=None)

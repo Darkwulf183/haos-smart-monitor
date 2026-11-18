@@ -1,0 +1,102 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "HAOS SMART Monitor",
+        "description": "Connection to the **HAOS SMART Monitor** app. The suggested values fit an installation from the GitHub repository. For a local app (/addons folder) the host is `local-haos-smart`.",
+        "data": {
+          "host": "Host",
+          "port": "Port"
+        },
+        "data_description": {
+          "host": "Hostname of the app on the internal Home Assistant network",
+          "port": "Port of the app API (default 8099)"
+        }
+      },
+      "reconfigure": {
+        "title": "HAOS SMART Monitor",
+        "data": {
+          "host": "Host",
+          "port": "Port"
+        },
+        "data_description": {
+          "host": "Hostname of the app on the internal Home Assistant network",
+          "port": "Port of the app API (default 8099)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot reach the app. Is HAOS SMART Monitor running? Check host and port."
+    },
+    "abort": {
+      "already_configured": "Already configured.",
+      "single_instance_allowed": "Already configured.",
+      "reconfigure_successful": "Saved."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "temperature": {
+        "name": "Temperature"
+      },
+      "power_on_hours": {
+        "name": "Power-on hours"
+      },
+      "wear_used": {
+        "name": "Wear used"
+      },
+      "data_written": {
+        "name": "Data written"
+      },
+      "data_read": {
+        "name": "Data read"
+      },
+      "power_cycles": {
+        "name": "Power cycles"
+      },
+      "unsafe_shutdowns": {
+        "name": "Unsafe shutdowns"
+      },
+      "crc_errors": {
+        "name": "Interface CRC errors"
+      },
+      "error_log_entries": {
+        "name": "Error log entries"
+      },
+      "reallocated_sectors": {
+        "name": "Reallocated sectors"
+      },
+      "pending_sectors": {
+        "name": "Pending sectors"
+      },
+      "uncorrectable": {
+        "name": "Uncorrectable errors"
+      },
+      "media_errors": {
+        "name": "Media errors"
+      },
+      "available_spare": {
+        "name": "Available spare"
+      },
+      "last_update": {
+        "name": "Last update"
+      }
+    },
+    "binary_sensor": {
+      "health": {
+        "name": "Health"
+      }
+    },
+    "button": {
+      "refresh": {
+        "name": "Read now"
+      }
+    }
+  },
+  "issues": {
+    "version_mismatch": {
+      "title": "HAOS SMART Monitor: app and integration versions differ",
+      "description": "The app runs version {app}, the integration is version {integration}. Please update both to the same version (app under Settings → Apps, integration via HACS or by copying custom_components/haos_smart) and restart Home Assistant."
+    }
+  }
+}

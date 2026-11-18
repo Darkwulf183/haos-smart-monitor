@@ -13,7 +13,8 @@ Die App braucht **ausgeschalteten Schutzmodus** und **vollen Hardwarezugriff**, 
 die Systemplatte nicht einzeln freigibt. Zusätzlich hat sie das Recht `SYS_RAWIO`, mit dem sich
 ATA-Befehle – auch schreibende – direkt an Platten senden lassen. Ein eigenes AppArmor-Profil
 beschränkt die App auf `python3` und `smartctl` und öffnet Platten nur lesend; Zugriff auf deine
-Konfiguration oder die Home-Assistant-API hat sie nicht. Die ausführliche Erklärung steht in der
+die Home-Assistant-API hat sie nicht; auf deine Konfiguration darf sie nur im Ordner
+`custom_components/haos_smart` schreiben – und auch das nur, wenn du dem Mitinstallieren zustimmst. Die ausführliche Erklärung steht in der
 README des GitHub-Repositorys (Abschnitt „Sicherheit“).
 
 ## Installation
@@ -23,8 +24,9 @@ README des GitHub-Repositorys (Abschnitt „Sicherheit“).
 2. **Schutzmodus ausschalten** (Info-Seite der App), App (neu) starten. Das kann die App nicht selbst
    erledigen: Home Assistant lässt diese Entscheidung bewusst nur dich treffen, und nach jeder Installation
    steht der Schutzmodus auf „an“. Solange er an ist, zeigt die Weboberfläche „Operation not permitted“.
-3. Integration installieren – über **HACS** (Repository als Integration hinzufügen) oder den Ordner
-   `custom_components/haos_smart` von Hand nach `/config/custom_components/` kopieren.
+3. Weboberfläche der App öffnen und bei **„Integration mitinstallieren?“** auf **Ja** klicken. Die App kopiert
+   die Integration nach `custom_components/haos_smart` und hält sie bei App-Updates aktuell (AppArmor erlaubt
+   ihr nur diesen Ordner). Bei **Nein**: Integration über **HACS** oder von Hand installieren.
 4. Home Assistant neu starten, dann **Einstellungen → Geräte & Dienste → Integration hinzufügen** →
    **HAOS SMART Monitor**. Host und Port werden vorgeschlagen.
 
@@ -80,6 +82,8 @@ wieder Werte da.
 - `GET /api/disks` – alle Platten als JSON (`?raw=1` mit Terminal-Text)
 - `GET /api/disks/<id>/raw` – Textausgabe einer Platte
 - `POST /api/refresh` – sofort neu auslesen; antwortet, wenn fertig (höchstens einmal pro Minute)
+- `GET /api/integration` – Status der mitgelieferten Integration
+- `POST /api/integration` mit `{"install": true|false}` – nur über die Weboberfläche (Ingress)
 
 Die API antwortet nur Home Assistant Core und dem Supervisor (Ingress), nicht anderen Apps.
 

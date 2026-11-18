@@ -8,6 +8,8 @@ FROM alpine:3.22@sha256:49340b346798875b5592e5d420241f2f9cfba5f47e62ebb1446a1b34
 RUN apk add --no-cache python3 smartmontools
 
 COPY app /app
+# Kopie der Integration (custom_components/haos_smart), wird nur nach Zustimmung installiert
+COPY integration /integration
 
 ENV PYTHONDONTWRITEBYTECODE=1
 CMD ["python3", "-u", "/app/app.py"]

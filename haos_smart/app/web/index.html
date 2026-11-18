@@ -74,6 +74,15 @@
   pre.term { margin: 0; background: var(--term-bg); color: var(--term-text); border-radius: 10px;
              padding: 14px 16px; overflow: auto; max-height: 70vh;
              font: 12.5px/1.5 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; white-space: pre; }
+  .banner { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--accent);
+            border-radius: 14px; padding: 16px 20px; }
+  .banner.warn { border-left-color: var(--warn); }
+  .banner.bad { border-left-color: var(--bad); }
+  .banner h3 { margin: 0 0 6px; font-size: 16px; }
+  .banner p { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
+  .banner p:last-child { margin-bottom: 0; }
+  .banner .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .linkbtn { border: 0; background: none; padding: 0; color: var(--accent); cursor: pointer; font-size: 12px; }
   .empty { text-align: center; color: var(--muted); padding: 60px 20px; }
   footer { text-align: center; color: var(--muted); font-size: 12px; padding-bottom: 24px; }
   @media (max-width: 760px) {
@@ -101,6 +110,8 @@ const nf = (d = 0) => new Intl.NumberFormat("de-DE", { maximumFractionDigits: d,
 const fmt = (v, d = 0) => (v === undefined || v === null) ? "–" : nf(d).format(v);
 const activeTab = {};   // Platte -> "overview" | "terminal"
 let state = null;
+let integ = null;     // Status der mitgelieferten Integration
+let integAsk = false; // Auswahl erneut anzeigen
 
 function el(tag, attrs = {}, ...children) {
   const e = document.createElement(tag);
@@ -223,13 +234,60 @@ function diskCard(d) {
     el("div", { class: "pane" }, tab === "terminal" ? terminal(d) : (d.values ? overview(d) : terminal(d))));
 }
 
+async function chooseIntegration(install, btns) {
+  btns.forEach(b => b.disabled = true);
+  try {
+    const r = await fetch("api/integration", { method: "POST", headers: { "Content-Type": "application/json" },
+                                               body: JSON.stringify({ install }) });
+    integ = await r.json();
+    integAsk = false;
+  } catch (e) { integ = { ...(integ || {}), error: "Keine Verbindung zur App" }; }
+  render();
+}
+
+function integrationBanner() {
+  if (!integ) return null;
+  if (integ.error)
+    return el("div", { class: "banner bad" }, el("h3", {}, "Integration konnte nicht installiert werden"),
+      el("p", {}, integ.error));
+  if (integ.choice === "ask" || integAsk) {
+    const yes = el("button", { class: "primary" }, "Ja, mitinstallieren");
+    const no = el("button", {}, "Nein, ich nutze HACS / installiere selbst");
+    yes.onclick = () => chooseIntegration(true, [yes, no]);
+    no.onclick = () => chooseIntegration(false, [yes, no]);
+    return el("div", { class: "banner" },
+      el("h3", {}, "Integration mitinstallieren?"),
+      el("p", {}, "Für Sensoren in Home Assistant (ein Gerät pro Platte) braucht es die Integration „HAOS SMART Monitor“. " +
+                  "Die App kann sie jetzt nach custom_components/haos_smart kopieren und bei jedem App-Update aktuell halten. " +
+                  "Sie schreibt dabei nur in diesen Ordner – den Rest deiner Konfiguration (z. B. secrets.yaml) sperrt AppArmor."),
+      el("div", { class: "actions" }, yes, no));
+  }
+  if (integ.restart_needed)
+    return el("div", { class: "banner warn" },
+      el("h3", {}, `Integration ${integ.installed_version} installiert – bitte Home Assistant neu starten`),
+      el("p", {}, "Einstellungen → System → oben rechts Neustart. Danach unter Einstellungen → Geräte & Dienste → " +
+                  "Integration hinzufügen → „HAOS SMART Monitor“ einrichten (nur beim ersten Mal)."));
+  return null;
+}
+
+function integrationFooter() {
+  if (!integ || integ.choice === "ask") return "";
+  return integ.choice === "yes"
+    ? ` · Integration: von der App installiert${integ.installed_version ? " (" + integ.installed_version + ")" : ""}`
+    : " · Integration: nicht von der App installiert";
+}
+
 function render() {
   const main = document.getElementById("main");
   if (!state) return;
   document.getElementById("stamp").textContent =
     state.scanning ? "Lese Platten aus …" : `Zuletzt ausgelesen: ${ago(state.last_scan)} · alle ${state.interval_min} Min.`;
-  document.getElementById("footer").textContent = `HAOS SMART Monitor ${state.version}`;
-  main.replaceChildren(...(state.disks.length
+  const footer = document.getElementById("footer");
+  footer.replaceChildren(`HAOS SMART Monitor ${state.version}${integrationFooter()}`);
+  if (integ && integ.choice !== "ask" && !integAsk)
+    footer.append(" · ", el("button", { class: "linkbtn", onclick: () => { integAsk = true; render(); } }, "ändern"));
+  const banner = integrationBanner();
+  main.replaceChildren(...(banner ? [banner] : []), ...(state.disks.length
     ? state.disks.map(diskCard)
     : [el("div", { class: "empty" }, state.last_scan
         ? "Keine Platten gefunden. Im Log der App steht, warum."
@@ -238,8 +296,10 @@ function render() {
 
 async function load() {
   try {
-    const r = await fetch("api/disks?raw=1", { cache: "no-store" });
+    const [r, ri] = await Promise.all([fetch("api/disks?raw=1", { cache: "no-store" }),
+                                       fetch("api/integration", { cache: "no-store" })]);
     state = await r.json();
+    if (ri.ok) integ = await ri.json();
     render();
   } catch (e) {
     document.getElementById("stamp").textContent = "Keine Verbindung zur App";

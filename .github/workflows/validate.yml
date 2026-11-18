@@ -1,0 +1,36 @@
+name: Validate
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  hacs:
+    name: HACS validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: hacs/action@main
+        with:
+          category: integration
+
+  hassfest:
+    name: Hassfest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: home-assistant/actions/hassfest@master
+
+  sync:
+    name: Integration in App und Repository gleich
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Vergleich custom_components/haos_smart ↔ haos_smart/integration/haos_smart
+        run: |
+          diff -r custom_components/haos_smart haos_smart/integration/haos_smart \
+            || { echo "::error::Integration nicht synchron – scripts/sync_integration.sh ausführen"; exit 1; }
