@@ -23,7 +23,7 @@ from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-VERSION = "0.3.0"
+VERSION = "0.3.1"
 OPTIONS_FILE = os.environ.get("OPTIONS_FILE", "/data/options.json")
 WEB_DIR = Path(__file__).resolve().parent / "web"
 PORT = int(os.environ.get("PORT", "8099"))
@@ -222,6 +222,11 @@ class Monitor:
 
         if status & 0b10 and not data.get("smart_status"):
             err = "; ".join(messages) or f"smartctl-Status {status}"
+            if "Operation not permitted" in err:
+                # Typisch bei eingeschaltetem Schutzmodus: dann gibt der Supervisor
+                # den vollen Hardwarezugriff nicht frei.
+                err += (" – Der Schutzmodus der App ist vermutlich noch eingeschaltet. "
+                        "Auf der Info-Seite der App ausschalten und die App neu starten.")
             log.warning("%s nicht lesbar oder im Standby: %s", device, err)
             return {"id": disk_id(None, device), "device": device, "type": dtype,
                     "error": err, "raw": output, "checked": now}

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.1
+- Klarer Hinweis in Weboberfläche und Log, wenn die Platte wegen eingeschaltetem Schutzmodus nicht lesbar ist („Operation not permitted“)
+- README und Dokumentation erklären, warum der Schutzmodus von Hand ausgeschaltet werden muss
+- Erster Lauf auf echter HAOS-Hardware erfolgreich (SATA-SSD im USB-Gehäuse)
+
 ## 0.3.0 – gehärtet
 - Eigenes AppArmor-Profil: nur python3 und smartctl, Platten nur lesend öffnen, keine weiteren Linux-Rechte außer `SYS_RAWIO`
 - `SYS_RAWIO` ausdrücklich angefordert (für SMART über SCSI/SAT nötig; `full_access` allein gibt es nicht)

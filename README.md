@@ -117,8 +117,19 @@ Bitte **nicht** als öffentliches Issue melden, sondern über
 1. **Einstellungen → Apps → App-Store** → ⋮ (oben rechts) → **Repositories** →
    `https://github.com/Darkwulf183/haos-smart-monitor` hinzufügen.
 2. **HAOS SMART Monitor** installieren.
-3. Auf der Info-Seite der App den **Schutzmodus ausschalten** (siehe [Sicherheit](#sicherheit)).
-4. App starten und im Log prüfen, dass die Platte gefunden wurde.
+3. Auf der Info-Seite der App den **Schutzmodus ausschalten** (siehe unten und [Sicherheit](#sicherheit)).
+4. App (neu) starten und im Log prüfen, dass die Platte gefunden wurde.
+
+#### Warum muss ich den Schutzmodus selbst ausschalten?
+
+Eine App **kann** den Schutzmodus nicht selbst abschalten – auch nicht als Voreinstellung. In Home Assistant
+ist er eine Einstellung, die nur du triffst, und sie steht nach jeder Installation auf „an“. Das ist Absicht:
+Ob eine App Zugriff auf die Hardware bekommt, soll immer bewusst der Mensch entscheiden, nicht der Entwickler
+der App.
+
+Solange der Schutzmodus an ist, startet die App zwar, bekommt aber keinen Zugriff auf die Platte. In der
+Weboberfläche steht dann **„Nicht lesbar … Operation not permitted“** mit dem Hinweis, den Schutzmodus
+auszuschalten. Nach dem Ausschalten die App **neu starten** – der Zugriff gilt erst ab dem nächsten Start.
 
 ### 2. Integration (für Sensoren in Home Assistant)
 

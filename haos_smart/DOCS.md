@@ -20,7 +20,9 @@ README des GitHub-Repositorys (Abschnitt „Sicherheit“).
 
 1. Repository unter **Einstellungen → Apps → App-Store → ⋮ → Repositories** hinzufügen und
    **HAOS SMART Monitor** installieren (oder lokal: Ordner `haos_smart` nach `/addons/` kopieren).
-2. **Schutzmodus ausschalten** (Info-Seite der App), App starten.
+2. **Schutzmodus ausschalten** (Info-Seite der App), App (neu) starten. Das kann die App nicht selbst
+   erledigen: Home Assistant lässt diese Entscheidung bewusst nur dich treffen, und nach jeder Installation
+   steht der Schutzmodus auf „an“. Solange er an ist, zeigt die Weboberfläche „Operation not permitted“.
 3. Integration installieren – über **HACS** (Repository als Integration hinzufügen) oder den Ordner
    `custom_components/haos_smart` von Hand nach `/config/custom_components/` kopieren.
 4. Home Assistant neu starten, dann **Einstellungen → Geräte & Dienste → Integration hinzufügen** →
