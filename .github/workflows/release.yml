@@ -1,0 +1,51 @@
+name: Release
+
+# Legt automatisch ein GitHub-Release an, sobald auf main eine App-Version
+# (haos_smart/config.yaml) steht, für die es noch kein Release gibt.
+# Release-Text: .github/releases/v<version>.md, sonst der Abschnitt aus CHANGELOG.md.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - haos_smart/config.yaml
+      - .github/releases/**
+      - .github/workflows/release.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version lesen und prüfen
+        id: v
+        run: |
+          app=$(sed -nE 's/^version: *"?([^"]+)"?.*/\1/p' haos_smart/config.yaml)
+          integ=$(python3 -c "import json;print(json.load(open('custom_components/haos_smart/manifest.json'))['version'])")
+          if [ "$app" != "$integ" ]; then
+            echo "::error::App-Version $app und Integrations-Version $integ unterscheiden sich"; exit 1
+          fi
+          echo "version=$app" >> "$GITHUB_OUTPUT"
+
+      - name: Release anlegen (falls noch nicht vorhanden)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.v.outputs.version }}
+        run: |
+          tag="v$VERSION"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag gibt es schon – nichts zu tun."; exit 0
+          fi
+          notes=".github/releases/$tag.md"
+          if [ ! -f "$notes" ]; then
+            awk -v v="$VERSION" '$0 ~ "^## "v {f=1; next} /^## / {f=0} f' haos_smart/CHANGELOG.md > /tmp/notes.md
+            notes=/tmp/notes.md
+          fi
+          title="$tag"
+          [ "$VERSION" = "0.3.0" ] && title="v0.3.0 – erste öffentliche Version"
+          gh release create "$tag" --target "$GITHUB_SHA" --title "$title" --notes-file "$notes"
