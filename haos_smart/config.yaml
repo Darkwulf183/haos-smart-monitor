@@ -1,5 +1,5 @@
 name: HAOS SMART Monitor
-version: "0.3.1"
+version: "0.3.2"
 slug: haos_smart
 description: SMART-Werte der Platten am Home-Assistant-Rechner – mit Weboberfläche, ohne MQTT
 url: https://github.com/Darkwulf183/haos-smart-monitor

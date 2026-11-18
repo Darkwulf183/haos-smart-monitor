@@ -1,3 +1,5 @@
+<p align="center"><img src="haos_smart/logo.png" alt="HAOS SMART Monitor" width="250"></p>
+
 # HAOS SMART Monitor
 
 Schlanke Home-Assistant-App, die per SMART **nur die Platten am Home-Assistant-Rechner** überwacht –

@@ -3,7 +3,7 @@ from datetime import timedelta
 
 DOMAIN = "haos_smart"
 # Muss zu "version" in manifest.json passen; die App sollte dieselbe Version haben.
-INTEGRATION_VERSION = "0.3.1"
+INTEGRATION_VERSION = "0.3.2"
 
 # Hostname der lokalen App im internen HA-Netz (Slug local_haos_smart)
 DEFAULT_HOST = "local-haos-smart"

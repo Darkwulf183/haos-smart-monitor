@@ -23,7 +23,7 @@ from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-VERSION = "0.3.1"
+VERSION = "0.3.2"
 OPTIONS_FILE = os.environ.get("OPTIONS_FILE", "/data/options.json")
 WEB_DIR = Path(__file__).resolve().parent / "web"
 PORT = int(os.environ.get("PORT", "8099"))

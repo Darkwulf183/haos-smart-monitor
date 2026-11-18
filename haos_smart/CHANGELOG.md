@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.2
+- Eigenes Icon und Logo für den App-Store (Quelle als SVG in `.github/assets`)
+
 ## 0.3.1
 - Klarer Hinweis in Weboberfläche und Log, wenn die Platte wegen eingeschaltetem Schutzmodus nicht lesbar ist („Operation not permitted“)
 - README und Dokumentation erklären, warum der Schutzmodus von Hand ausgeschaltet werden muss

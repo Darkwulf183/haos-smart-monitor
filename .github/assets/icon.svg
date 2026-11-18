@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1e88e5"/>
+      <stop offset="1" stop-color="#0d47a1"/>
+    </linearGradient>
+    <linearGradient id="disk" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#dce6f2"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="28" fill="url(#bg)"/>
+  <!-- SSD-Gehäuse -->
+  <rect x="22" y="30" width="84" height="64" rx="10" fill="url(#disk)"/>
+  <rect x="22" y="30" width="84" height="64" rx="10" fill="none" stroke="#0b3c8a" stroke-opacity=".25" stroke-width="2"/>
+  <!-- Anschlusskontakte -->
+  <g fill="#9fb3cc">
+    <rect x="32" y="86" width="6" height="8" rx="1.5"/>
+    <rect x="42" y="86" width="6" height="8" rx="1.5"/>
+    <rect x="52" y="86" width="6" height="8" rx="1.5"/>
+    <rect x="62" y="86" width="6" height="8" rx="1.5"/>
+  </g>
+  <!-- Status-LED -->
+  <circle cx="94" cy="88" r="3.5" fill="#43d17a"/>
+  <!-- Herzschlag-Linie -->
+  <polyline points="30,60 46,60 53,46 61,74 69,52 75,60 98,60"
+            fill="none" stroke="#1565c0" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
