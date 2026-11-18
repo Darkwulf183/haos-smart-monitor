@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SMART</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --card: #ffffff; --text: #1c1d21; --muted: #6b6f7b;
+    --line: #e3e5ea; --tile: #f7f8fa; --accent: #03a9f4;
+    --ok: #2e9d50; --ok-bg: #e7f6ec; --bad: #d93025; --bad-bg: #fdecea;
+    --warn: #c77700; --warn-bg: #fff4e0;
+    --term-bg: #15171c; --term-text: #d6dae3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111214; --card: #1c1d21; --text: #e6e7ea; --muted: #9a9ea8;
+      --line: #2c2e34; --tile: #24262b;
+      --ok: #4cc26e; --ok-bg: #16301f; --bad: #ff6b5f; --bad-bg: #3a1b19;
+      --warn: #f2a33a; --warn-bg: #3a2a12;
+      --term-bg: #0b0c0e;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+           padding: 18px 24px; border-bottom: 1px solid var(--line); background: var(--card); }
+  header h1 { margin: 0; font-size: 20px; font-weight: 600; }
+  header .sub { color: var(--muted); font-size: 13px; }
+  header .spacer { flex: 1; }
+  .stamp { color: var(--muted); font-size: 13px; text-align: right; }
+  button { font: inherit; cursor: pointer; border-radius: 8px; border: 1px solid var(--line);
+           background: var(--card); color: var(--text); padding: 7px 14px; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button:disabled { opacity: .6; cursor: progress; }
+  main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 40px; display: grid; gap: 20px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .head { padding: 18px 20px 14px; display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
+  .head .title { flex: 1; min-width: 220px; }
+  .head h2 { margin: 0 0 3px; font-size: 18px; }
+  .meta { color: var(--muted); font-size: 13px; }
+  .meta span + span::before { content: " · "; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px;
+          border-radius: 999px; font-weight: 600; font-size: 14px; white-space: nowrap; }
+  .pill.ok { color: var(--ok); background: var(--ok-bg); }
+  .pill.bad { color: var(--bad); background: var(--bad-bg); }
+  .pill.warn { color: var(--warn); background: var(--warn-bg); }
+  .notice { margin: 0 20px 14px; padding: 10px 14px; border-radius: 10px; font-size: 14px; }
+  .notice.bad { background: var(--bad-bg); color: var(--bad); }
+  .notice.warn { background: var(--warn-bg); color: var(--warn); }
+  .notice ul { margin: 4px 0 0; padding-left: 18px; }
+  .tabs { display: flex; gap: 4px; padding: 0 20px; border-bottom: 1px solid var(--line); }
+  .tab { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none;
+         padding: 9px 12px; color: var(--muted); }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+  .pane { padding: 18px 20px 20px; }
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .tile { background: var(--tile); border-radius: 12px; padding: 14px 16px; }
+  .tile .lbl { color: var(--muted); font-size: 13px; }
+  .tile .val { font-size: 26px; font-weight: 650; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .tile .val small { font-size: 15px; font-weight: 500; color: var(--muted); margin-left: 3px; }
+  .tile .hint { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .bar { height: 6px; background: var(--line); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+  .bar > div { height: 100%; border-radius: 3px; }
+  table.diag { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 14px; }
+  table.diag td { padding: 7px 4px; border-bottom: 1px solid var(--line); }
+  table.diag td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+  table.diag td .note { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
+  .alert { color: var(--bad); }
+  .attn { color: var(--warn); }
+  .termbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+             color: var(--muted); font-size: 13px; }
+  pre.term { margin: 0; background: var(--term-bg); color: var(--term-text); border-radius: 10px;
+             padding: 14px 16px; overflow: auto; max-height: 70vh;
+             font: 12.5px/1.5 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; white-space: pre; }
+  .empty { text-align: center; color: var(--muted); padding: 60px 20px; }
+  footer { text-align: center; color: var(--muted); font-size: 12px; padding-bottom: 24px; }
+  @media (max-width: 760px) {
+    .tiles { grid-template-columns: repeat(2, 1fr); }
+    header { padding: 14px 16px; }
+    .stamp { text-align: left; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>SMART</h1>
+    <div class="sub">Platten am Home-Assistant-Rechner</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="stamp" id="stamp">Lade …</div>
+  <button class="primary" id="refresh">Jetzt auslesen</button>
+</header>
+<main id="main"><div class="empty">Lade Daten …</div></main>
+<footer id="footer"></footer>
+
+<script>
+const nf = (d = 0) => new Intl.NumberFormat("de-DE", { maximumFractionDigits: d, minimumFractionDigits: d });
+const fmt = (v, d = 0) => (v === undefined || v === null) ? "–" : nf(d).format(v);
+const activeTab = {};   // Platte -> "overview" | "terminal"
+let state = null;
+
+function el(tag, attrs = {}, ...children) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") e.className = v;
+    else if (k === "html") e.innerHTML = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v);
+  }
+  for (const c of children.flat()) if (c !== null && c !== undefined && c !== false)
+    e.append(c instanceof Node ? c : document.createTextNode(c));
+  return e;
+}
+
+function ago(iso) {
+  if (!iso) return "noch nie";
+  const s = Math.round((Date.now() - new Date(iso)) / 1000);
+  if (s < 60) return "gerade eben";
+  if (s < 3600) return `vor ${Math.round(s / 60)} Min.`;
+  if (s < 86400) return `vor ${Math.round(s / 3600)} Std.`;
+  return new Date(iso).toLocaleString("de-DE");
+}
+
+function hoursHint(h) {
+  if (h == null) return "";
+  const days = h / 24;
+  return days >= 365 ? `≈ ${fmt(days / 365, 1)} Jahre Laufzeit` : `≈ ${fmt(days)} Tage Laufzeit`;
+}
+
+function tile(label, value, unit, hint, extra) {
+  return el("div", { class: "tile" },
+    el("div", { class: "lbl" }, label),
+    el("div", { class: "val" }, value, unit ? el("small", {}, unit) : null),
+    hint ? el("div", { class: "hint" }, hint) : null,
+    extra || null);
+}
+
+function wearTile(w) {
+  if (w == null) return tile("Verschleiß", "–", "", "von der Platte nicht gemeldet");
+  const color = w >= 90 ? "var(--bad)" : w >= 70 ? "var(--warn)" : "var(--ok)";
+  const bar = el("div", { class: "bar" }, el("div", { style: `width:${Math.min(w, 100)}%;background:${color}` }));
+  return tile("Verschleiß", fmt(w), "%", `${fmt(Math.max(100 - w, 0))} % Lebensdauer übrig`, bar);
+}
+
+const DIAG = [
+  ["data_read_tb", "Gelesen", "TB", 2],
+  ["power_cycles", "Einschaltzyklen", "", 0],
+  ["unsafe_shutdowns", "Unsaubere Abschaltungen", "", 0, "Strom weg ohne sauberes Herunterfahren"],
+  ["crc_errors", "Übertragungsfehler (CRC)", "", 0, "Kabel / USB-Gehäuse, kein Plattendefekt", "attn"],
+  ["error_log_entries", "Fehlerprotokoll-Einträge", "", 0, "", "attn"],
+  ["reallocated_sectors", "Umgelagerte Sektoren", "", 0, "", "alert"],
+  ["pending_sectors", "Ausstehende Sektoren", "", 0, "", "alert"],
+  ["uncorrectable", "Nicht korrigierbare Fehler", "", 0, "", "alert"],
+  ["media_errors", "Medienfehler", "", 0, "", "alert"],
+  ["available_spare", "Reserve-Blöcke", "%", 0],
+];
+
+function overview(d) {
+  const v = d.values || {};
+  const tiles = el("div", { class: "tiles" },
+    tile("Betriebsstunden", fmt(v.power_on_hours), "h", hoursHint(v.power_on_hours)),
+    tile("Temperatur", fmt(v.temperature), "°C"),
+    wearTile(v.wear_used),
+    tile("Geschrieben", fmt(v.data_written_tb, 2), "TB",
+      v.data_written_tb != null && v.power_on_hours
+        ? `≈ ${fmt(v.data_written_tb * 1000 / (v.power_on_hours / 24), 1)} GB pro Tag` : "von der Platte nicht gemeldet"));
+  const rows = DIAG.filter(([k]) => v[k] !== undefined).map(([k, label, unit, dec, note, cls]) =>
+    el("tr", {},
+      el("td", {}, label, note ? el("span", { class: "note" }, note) : null),
+      el("td", { class: (cls && v[k] > 0) ? cls : "" }, `${fmt(v[k], dec)}${unit ? " " + unit : ""}`)));
+  return el("div", {}, tiles, rows.length ? el("table", { class: "diag" }, el("tbody", {}, rows)) : null);
+}
+
+function terminal(d) {
+  const pre = el("pre", { class: "term" });
+  pre.textContent = d.raw || "Keine Ausgabe vorhanden.";
+  const copy = el("button", {
+    onclick: async (e) => {
+      try { await navigator.clipboard.writeText(d.raw || ""); e.target.textContent = "Kopiert ✓"; }
+      catch { const r = document.createRange(); r.selectNodeContents(pre);
+              const s = getSelection(); s.removeAllRanges(); s.addRange(r); e.target.textContent = "Markiert – Strg+C"; }
+      setTimeout(() => e.target.textContent = "Kopieren", 2000);
+    }
+  }, "Kopieren");
+  const cmd = `smartctl -x${d.type ? " -d " + d.type : ""} ${d.device}`;
+  return el("div", {}, el("div", { class: "termbar" }, el("span", {}, "$ " + cmd), copy), pre);
+}
+
+function diskCard(d) {
+  const key = d.id;
+  const tab = activeTab[key] || "overview";
+  let pill;
+  if (d.error && !d.values) pill = el("span", { class: "pill warn" }, "✕ Nicht lesbar");
+  else if (d.problem) pill = el("span", { class: "pill bad" }, "⚠ Problem");
+  else pill = el("span", { class: "pill ok" }, "✓ Gesund");
+
+  const meta = el("div", { class: "meta" },
+    [d.device, d.type ? d.type.toUpperCase() : null, d.capacity_gb ? `${fmt(d.capacity_gb)} GB` : null,
+     d.serial ? `SN ${d.serial}` : null, d.firmware ? `FW ${d.firmware}` : null,
+     d.smart_passed === true ? "SMART: PASSED" : d.smart_passed === false ? "SMART: FAILED" : null]
+      .filter(Boolean).map(t => el("span", {}, t)));
+
+  const notices = [];
+  if (d.problem && d.reasons && d.reasons.length)
+    notices.push(el("div", { class: "notice bad" }, "Auffällig:", el("ul", {}, d.reasons.map(r => el("li", {}, r)))));
+  if (d.error)
+    notices.push(el("div", { class: "notice warn" },
+      d.values ? `Letzte Abfrage fehlgeschlagen (${d.error}) – angezeigt werden die Werte von ${ago(d.last_update)}.`
+               : `Platte konnte nicht gelesen werden: ${d.error}`));
+
+  const tabs = el("div", { class: "tabs" },
+    [["overview", "Übersicht"], ["terminal", "Terminal"]].map(([id, label]) =>
+      el("button", { class: "tab" + (tab === id ? " active" : ""),
+                     onclick: () => { activeTab[key] = id; render(); } }, label)));
+
+  return el("section", { class: "card" },
+    el("div", { class: "head" },
+      el("div", { class: "title" }, el("h2", {}, d.model || d.device), meta), pill),
+    notices, tabs,
+    el("div", { class: "pane" }, tab === "terminal" ? terminal(d) : (d.values ? overview(d) : terminal(d))));
+}
+
+function render() {
+  const main = document.getElementById("main");
+  if (!state) return;
+  document.getElementById("stamp").textContent =
+    state.scanning ? "Lese Platten aus …" : `Zuletzt ausgelesen: ${ago(state.last_scan)} · alle ${state.interval_min} Min.`;
+  document.getElementById("footer").textContent = `HAOS SMART Monitor ${state.version}`;
+  main.replaceChildren(...(state.disks.length
+    ? state.disks.map(diskCard)
+    : [el("div", { class: "empty" }, state.last_scan
+        ? "Keine Platten gefunden. Im Log der App steht, warum."
+        : "Erste Abfrage läuft …")]));
+}
+
+async function load() {
+  try {
+    const r = await fetch("api/disks?raw=1", { cache: "no-store" });
+    state = await r.json();
+    render();
+  } catch (e) {
+    document.getElementById("stamp").textContent = "Keine Verbindung zur App";
+  }
+}
+
+document.getElementById("refresh").addEventListener("click", async (e) => {
+  const b = e.target; b.disabled = true; b.textContent = "Lese aus …";
+  document.getElementById("stamp").textContent = "Lese Platten aus …";
+  try { await fetch("api/refresh", { method: "POST" }); } catch {}
+  await load();
+  b.disabled = false; b.textContent = "Jetzt auslesen";
+});
+
+load();
+setInterval(load, 60000);
+</script>
+</body>
+</html>

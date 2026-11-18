@@ -1,0 +1,18 @@
+configuration:
+  scan_interval:
+    name: Abfrage-Intervall (Minuten)
+    description: Wie oft die Platten ausgelesen werden.
+  devices:
+    name: Platten (optional)
+    description: >-
+      Leer lassen = automatisch erkennen. Sonst z. B. /dev/sda oder
+      /dev/sda:sat (Gerät:Typ für USB-Gehäuse). Erlaubt sind nur
+      /dev/sdX und /dev/nvmeN.
+  wear_warning:
+    name: Verschleiß-Warnung (%)
+    description: Ab diesem verbrauchten Anteil meldet der Problem-Sensor.
+  temp_warning:
+    name: Temperatur-Warnung (°C)
+    description: Ab dieser Temperatur meldet der Problem-Sensor.
+  log_level:
+    name: Log-Level

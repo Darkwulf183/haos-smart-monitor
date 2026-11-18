@@ -1,0 +1,46 @@
+name: HAOS SMART Monitor
+version: "0.3.0"
+slug: haos_smart
+description: SMART-Werte der Platten am Home-Assistant-Rechner – mit Weboberfläche, ohne MQTT
+url: https://github.com/Darkwulf183/haos-smart-monitor
+arch:
+  - amd64
+  - aarch64
+init: false
+startup: application
+boot: auto
+
+# --- Rechte: so wenig wie möglich, Begründung in README.md (Abschnitt Sicherheit) ---
+# Die Systemplatte darf der Supervisor über "devices" nicht freigeben. Für SMART an
+# genau dieser Platte bleibt nur full_access (= Zugriff auf alle Gerätedateien;
+# wirkt nur bei ausgeschaltetem Schutzmodus). Es ist KEIN privilegierter Container:
+# keine zusätzlichen Linux-Rechte außer SYS_RAWIO.
+full_access: true
+# Nötig für ATA-Befehle über SCSI/SAT (z. B. SSD im USB-Gehäuse).
+# NVMe bräuchte zusätzlich SYS_ADMIN – bewusst nicht vergeben.
+privileged:
+  - SYS_RAWIO
+# Eigenes AppArmor-Profil (apparmor.txt): nur python3 und smartctl, Platten nur lesend.
+apparmor: true
+
+# Weboberfläche nur über Ingress (HA-Anmeldung), kein Port nach außen
+ingress: true
+ingress_port: 8099
+panel_icon: mdi:harddisk
+panel_title: SMART
+# Bewusst NICHT gesetzt: map (kein Zugriff auf /config), homeassistant_api,
+# hassio_api, docker_api, host_network, ports.
+
+options:
+  scan_interval: 30
+  devices: []
+  wear_warning: 90
+  temp_warning: 60
+  log_level: info
+schema:
+  scan_interval: int(5,1440)
+  devices:
+    - match(^/dev/(sd[a-z]{1,2}|nvme[0-9]+(n[0-9]+)?)(:[a-z0-9,]+)?$)?
+  wear_warning: int(1,100)
+  temp_warning: int(30,100)
+  log_level: list(debug|info|warning|error)

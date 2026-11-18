@@ -1,0 +1,18 @@
+configuration:
+  scan_interval:
+    name: Scan interval (minutes)
+    description: How often the disks are read.
+  devices:
+    name: Disks (optional)
+    description: >-
+      Leave empty for auto-detection. Otherwise e.g. /dev/sda or
+      /dev/sda:sat (device:type for USB enclosures). Only /dev/sdX and
+      /dev/nvmeN are allowed.
+  wear_warning:
+    name: Wear warning (%)
+    description: From this percentage used the health sensor reports a problem.
+  temp_warning:
+    name: Temperature warning (°C)
+    description: From this temperature the health sensor reports a problem.
+  log_level:
+    name: Log level

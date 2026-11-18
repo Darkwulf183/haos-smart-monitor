@@ -1,0 +1,71 @@
+#include <tunables/global>
+
+# AppArmor-Profil für HAOS SMART Monitor.
+# Erlaubt nur, was die App braucht: python3 + smartctl ausführen, eigene
+# Dateien lesen, Platten NUR LESEND öffnen, Webserver auf Port 8099.
+# Der Supervisor setzt den Profilnamen beim Laden selbst auf den Slug der App.
+profile haos_smart flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+
+  # --- Linux-Rechte: nur SYS_RAWIO (ATA-Befehle für SMART) ---
+  capability sys_rawio,
+  deny capability sys_admin,
+  deny capability sys_module,
+  deny capability sys_ptrace,
+  deny capability net_admin,
+  deny capability dac_override,
+  deny capability dac_read_search,
+
+  # --- Netzwerk: nur TCP (Webserver/API), kein Raw-Socket ---
+  network inet stream,
+  network inet6 stream,
+  network unix stream,
+  deny network raw,
+  deny network packet,
+
+  # Docker darf die App stoppen
+  signal (receive) peer=unconfined,
+  signal (send, receive) peer=@{profile_name},
+
+  # --- Programme: nur diese beiden ---
+  /usr/bin/python3* ix,
+  /usr/{bin,sbin}/smartctl ix,
+
+  # Bibliotheken, Python-Standardbibliothek, smartctl-Datenbank
+  /lib/** mr,
+  /usr/lib/** mr,
+  /usr/share/smartmontools/** r,
+  /var/lib/smartmontools/** r,
+  /etc/** r,
+  /usr/share/zoneinfo/** r,
+
+  # App-Dateien (nur lesen) und Optionen
+  /app/** r,
+  /data/ r,
+  /data/options.json r,
+
+  # Platten: nur Lesen (smartctl öffnet SATA/SAT und NVMe mit O_RDONLY)
+  /dev/ r,
+  /dev/sd[a-z] r,
+  /dev/sd[a-z][a-z] r,
+  /dev/nvme[0-9]* r,
+  /dev/null rw,
+  /dev/urandom r,
+  deny /dev/sd* w,
+  deny /dev/bsg/** rw,
+  deny /dev/sg* rw,
+  deny /dev/nvme* w,
+  deny /dev/mem rw,
+  deny /dev/kmem rw,
+  deny /dev/port rw,
+
+  # Systeminfos, die smartctl/python lesen
+  @{PROC}/** r,
+  /sys/** r,
+  deny @{PROC}/sysrq-trigger w,
+  deny @{PROC}/kcore r,
+  deny /sys/** w,
+
+  # Sonst nirgends schreiben
+  /tmp/** rw,
+}
